@@ -1,9 +1,7 @@
 ﻿using ManejoPresupuesto.Models;
 using ManejoPresupuesto.Services.Interface;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Threading.Tasks;
 
 namespace ManejoPresupuesto.Controllers
 {
@@ -48,21 +46,28 @@ namespace ManejoPresupuesto.Controllers
             if (!ModelState.IsValid)
             {
                 cuentaCreacion.TiposCuentas = await ObtenerTipoCuenta(usuarioId);
-                foreach (var entry in ModelState)
-                {
-                    var key = entry.Key;
-                    var errors = entry.Value.Errors;
-                    foreach (var error in errors)
-                    {
-                        Console.WriteLine($"Error en '{key}': {error.ErrorMessage}");
-                    }
-                }
                 return View(cuentaCreacion);
             }
 
             await cuentasRepository.Crear(cuentaCreacion);
 
             return RedirectToAction("Index");
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var usuarioId = servicioUsuario.ObtenerUusario();
+
+            var cuentasConTipoCuenta = await cuentasRepository.Buscar(usuarioId);
+            var model = cuentasConTipoCuenta
+                .GroupBy(x => x.TipoCuenta)
+                .Select(grupo => new IndiceCuenta
+                {
+                    TipoCuenta = grupo.Key,
+                    Cuentas = grupo.AsEnumerable()
+                }).ToList();
+
+            return View(model);
         }
 
         private async Task<IEnumerable<SelectListItem>> ObtenerTipoCuenta(int usuarioId)

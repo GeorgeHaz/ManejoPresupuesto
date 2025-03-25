@@ -19,10 +19,25 @@ namespace ManejoPresupuesto.Services.Repository
 
             var id = await connection.QuerySingleAsync<int>(@"INSERT INTO Cuentas 
                             (Nombre,TipoCuentaId,Balance,Descripcion) 
-                            VALUES (@Nombre,@TiposCuentas,@Balance,@Descripcion);
-                            SELECT SCOPE_IDENTITY;", cuenta);
+                            VALUES (@Nombre,@TipoCuentaId,@Balance,@Descripcion);
+                            SELECT SCOPE_IDENTITY();", cuenta);
             cuenta.TipoCuentaId = id;
         }
 
+        public async Task<IEnumerable<Cuenta>> Buscar(int usuarioId)
+        {
+            using var connection = new SqlConnection(_conectionString);
+            var response = await connection.QueryAsync<Cuenta>(@"Select 
+	                                                                CuentaId,
+	                                                                Cuentas.Nombre,
+	                                                                Balance,
+	                                                                tc.Nombre AS TipoCuenta
+                                                                from Cuentas
+                                                                INNER JOIN TiposCuentas tc ON tc.TipoCuentaId = Cuentas.TipoCuentaId
+                                                                WHERE tc.UsuarioId = @UsuarioId
+                                                                ORDER BY tc.Orden;", new { usuarioId });
+
+            return response;
+        }
     }
 }
